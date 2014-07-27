@@ -1,15 +1,48 @@
 #!/usr/bin/python
 
 import sys
-from PyQt4 import QtCore, QtGui, uic
+from PyQt4 import QtCore, QtGui, uic, QtDBus
 
 import front
+import upcrpc
+
+class ServerAdaptor(QtDBus.QDBusAbstractAdaptor):
+  QtCore.Q_CLASSINFO("D-Bus Interface", 'cz.base48.Basebar.C')
+  QtCore.Q_CLASSINFO("D-Bus Introspection", ''
+        '  <interface name="cz.base48.Basebar.C">\n'
+        '    <method name="newProductCode">\n'
+        '      <arg type="s" name="ean" />\n'
+        '    </method>\n'
+        '  </interface>\n'
+        '')
+
+  def __init__(self, parent):
+    super(ServerAdaptor, self).__init__(parent)
+    self.setAutoRelaySignals(True)
+
+  @QtCore.pyqtSlot(QtDBus.QDBusMessage)
+  def newProductCode(self, message):
+    code = message.arguments()[0]
+    self.parent().newProd(code.toString())
 
 class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
   def __init__(self, *args):
     super(UI, self).__init__(*args)
 
     uic.loadUi('front.ui', self)
+    self.clear_product()
+
+  def clear_product(self):
+    self.lblProd.setText('---')
+    self.lblEAN.setText('')
+    self.lblStockedCount.setText('-')
+    self.lblPrice.setText('- CZK')
+    self.lblEAN.setText('')
+    self.spnCount.setValue(0)
+
+  def newProd(self, ean):
+    self.lblEAN.setText(ean)
+    self.spnCount.setValue(1)
 
   @QtCore.pyqtSlot()
   def on_btnBuy_clicked(self):
@@ -22,4 +55,10 @@ if __name__ == "__main__":
   w = UI()
   w.show()
   w.setVisible(True)
+
+  a = ServerAdaptor(w)
+  connection = QtDBus.QDBusConnection.sessionBus()
+  connection.registerService('cz.base48.Basebar')
+  connection.registerObject('/C', w)
+
   sys.exit(app.exec_())
