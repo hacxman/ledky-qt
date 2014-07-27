@@ -26,6 +26,7 @@ def lookup(decode):
             print "not found"
         else:
             print result["description"]
+            return result
     else:
         print str(result)
     sys.stdout.flush()
