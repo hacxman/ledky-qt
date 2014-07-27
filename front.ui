@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>865</width>
-    <height>537</height>
+    <width>915</width>
+    <height>527</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -233,7 +233,19 @@
          </font>
         </property>
         <property name="text">
-         <string>33.90 CZK</string>
+         <string>33.90</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lblCurrency">
+        <property name="font">
+         <font>
+          <pointsize>60</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>CZK</string>
         </property>
        </widget>
       </item>
@@ -312,16 +324,36 @@
      </spacer>
     </item>
     <item>
-     <widget class="QPushButton" name="pushButton_2">
+     <widget class="QPushButton" name="btnCancel">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
       <property name="text">
-       <string>SEKERA</string>
+       <string>CANCEL</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="pushButton_3">
+     <widget class="QPushButton" name="btnDebt">
+      <property name="text">
+       <string>NA SEKERU</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="btnAddStock">
       <property name="text">
        <string>Add to stock...</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="btnStocked">
+      <property name="text">
+       <string>Stock overview</string>
       </property>
      </widget>
     </item>
@@ -345,7 +377,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>865</width>
+     <width>915</width>
      <height>23</height>
     </rect>
    </property>
