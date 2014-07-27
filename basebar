@@ -3,7 +3,7 @@
 import sys
 from PyQt4 import QtCore, QtGui, uic, QtDBus, QtSql
 
-import front
+#import front
 import upcrpc
 
 
