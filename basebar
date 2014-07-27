@@ -1,0 +1,25 @@
+#!/usr/bin/python
+
+import sys
+from PyQt4 import QtCore, QtGui, uic
+
+import front
+
+class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
+  def __init__(self, *args):
+    super(UI, self).__init__(*args)
+
+    uic.loadUi('front.ui', self)
+
+  @QtCore.pyqtSlot()
+  def on_btnBuy_clicked(self):
+    cnt = self.spnCount.value()
+    prod = self.lblEAN.text()
+    print prod, cnt
+
+if __name__ == "__main__":
+  app = QtGui.QApplication(sys.argv)
+  w = UI()
+  w.show()
+  w.setVisible(True)
+  sys.exit(app.exec_())
