@@ -1,0 +1,6 @@
+To test, try this:
+
+./basebar & sleep 1; python send.py EAN-13:5901234123457
+
+It will automatically create new database if one is missing, prefilled with some test data.
+send.py will send "recognized" EAN code to basebar.
