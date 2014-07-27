@@ -1,10 +1,53 @@
 #!/usr/bin/python
 
 import sys
-from PyQt4 import QtCore, QtGui, uic, QtDBus
+from PyQt4 import QtCore, QtGui, uic, QtDBus, QtSql
 
 import front
 import upcrpc
+
+
+def createConnection():
+  dbname = 'db.sqlite'
+  db = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+  db.setDatabaseName(dbname)
+  if not db.open():
+    val = QtGui.QMessageBox.critical(None, QtGui.qApp.tr('Cannot open database'),
+        "Cannot open database {}\nCreate new?".format(dbname),
+        QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Ok)
+    return False
+
+  if len(db.tables()) == 0:
+    q = QtSql.QSqlQuery()
+    q.exec_("create table products(ean varchar(40) primary key,"
+            "name varchar(64))")
+
+    q.exec_("create table stock(id integer primary key autoincrement,"
+            "ean varchar(40),"
+            "count int,"
+            "price int,"
+            "stockdate datetime,"
+            "foreign key(ean) references products(ean))")
+
+    q.exec_("create table person(id integer primary key autoincrement,"
+            "name text)")
+
+    print q.exec_("create table buys(id integer primary key autoincrement,"
+            "stock_id int,"
+            "buydate datetime,"
+            "payed boolean,"
+            "person_id int,"
+            "foreign key(stock_id) references stock(id),"
+            "foreign key(person_id) references person(id))")
+
+    print q.exec_("insert into products values('EAN-13:5901234123457', 'Club-mate cola')")
+    print q.exec_("insert into person (name) values('hyna')")
+    print q.exec_("insert into person (name) values('evilissimo')")
+
+  for d in db.tables():
+    print d
+
+
 
 class ServerAdaptor(QtDBus.QDBusAbstractAdaptor):
   QtCore.Q_CLASSINFO("D-Bus Interface", 'cz.base48.Basebar.C')
@@ -25,6 +68,256 @@ class ServerAdaptor(QtDBus.QDBusAbstractAdaptor):
     code = message.arguments()[0]
     self.parent().newProd(code.toString())
 
+
+
+
+
+def product_in_db(ean):
+  q = QtSql.QSqlQuery()
+  q.prepare('select * from products where ean = :ean limit 1')
+  q.bindValue(':ean', ean)
+  r = q.exec_()
+  return r, q
+
+def add_new_product(ean, name):
+  q = QtSql.QSqlQuery()
+  q.prepare('insert into products values (:ean, :name)')
+  q.bindValue(':ean', ean)
+  q.bindValue(':name', name)
+  r = q.exec_()
+  return r, q
+
+def add_new_stock(ean, price, count):
+  q = QtSql.QSqlQuery()
+  q.prepare('insert into stock (ean, count, price, stockdate) values (:ean, :count, :price, datetime(\'now\'))')
+  q.bindValue(':ean', ean)
+  q.bindValue(':price', price)
+  q.bindValue(':count', count)
+  r = q.exec_()
+  return r, q
+
+def get_person_id(name):
+  q = QtSql.QSqlQuery()
+  q.prepare('select id from person where name = :name')
+  q.bindValue(':name', name)
+  r = q.exec_()
+  q.next()
+  return q.value(0).toInt()
+
+def get_product_name(ean):
+  q = QtSql.QSqlQuery()
+  q.prepare('select name from products where ean = :name limit 1')
+  q.bindValue(':name', ean)
+  r = q.exec_()
+  q.next()
+  return q.value(0).toString()
+
+def get_last_product_stock_date(ean):
+  q = QtSql.QSqlQuery()
+  q.prepare('select stockdate from stock where ean = :name order by stockdate desc limit 1')
+  q.bindValue(':name', ean)
+  r = q.exec_()
+  q.next()
+  return q.value(0).toString()
+
+def get_product_price(ean):
+  q = QtSql.QSqlQuery()
+  q.prepare('select price from stock where ean = :name order by stockdate desc limit 1')
+  q.bindValue(':name', ean)
+  r = q.exec_()
+  q.next()
+  return q.value(0).toInt()
+
+def buy_stocked_item(ean, count, debter=None):
+  if debter is not None:
+    debterid = get_person_id(debter)[0]
+  else:
+    debterid = None
+
+  q = QtSql.QSqlQuery()
+  q.prepare('select id from stock where ean = :ean order by stockdate desc limit 1')
+  q.bindValue(':ean', ean)
+  r = q.exec_()
+  q.next()
+  sid = q.value(0).toInt()[0]
+
+  for i in xrange(count):
+    q.prepare('insert into buys (stock_id, buydate, payed, person_id) values (:sid, datetime(\'now\'), :payed, :user)')
+    q.bindValue(':sid', sid)
+    q.bindValue(':payed', 0 if debterid is not None else 1)
+    q.bindValue(':user', debterid)
+    r = q.exec_()
+    if not r:
+      print q.lastError().text()
+      return r, q
+  return r, q
+
+class StockOverviewUI(QtGui.QDialog):
+  def __init__(self, *args):
+    super(StockOverviewUI, self).__init__(*args)
+
+    uic.loadUi('overview.ui', self)
+
+    self.load_overview()
+
+    self.tableWidget.setHorizontalHeaderLabels(['EAN', 'Name', 'Stocked amount', 'Current price', 'Last stocked'])
+
+    self.load_debts()
+    self.twDebts.setHorizontalHeaderLabels(['Name', 'Amount', 'Items'])
+
+    self.load_income_and_missing()
+
+
+  def load_income_and_missing(self):
+    q = QtSql.QSqlQuery()
+    q.prepare('select sum(stock.price) from buys join stock on buys.stock_id = stock.id where buys.payed = 1')
+    q.exec_()
+    q.next()
+    self.lblIncome.setText(q.value(0).toString())
+
+    q.prepare('select sum(stock.price) from buys join stock on buys.stock_id = stock.id where buys.payed != 1')
+    q.exec_()
+    q.next()
+    self.lblMissing.setText(q.value(0).toString())
+
+  def load_overview(self):
+    q = QtSql.QSqlQuery()
+    q.prepare('select distinct(ean) from stock')
+    q.exec_()
+    x, y = 0, 0
+    while q.next():
+      ean = q.value(0).toString()
+
+      q2 = QtSql.QSqlQuery()
+      q2.prepare('select sum(count) from stock where ean = :ean')
+      q2.bindValue(':ean', ean)
+      r = q2.exec_()
+      q2.next()
+      enstocked = q2.value(0).toInt()[0]
+      print 'stocked', enstocked
+
+
+      q2.prepare('select count(distinct(buys.id)) from buys join stock on stock.ean = :ean')
+      q2.bindValue(':ean', ean)
+      r = q2.exec_()
+      q2.next()
+      destocked = q2.value(0).toInt()[0]
+
+      self.tableWidget.insertRow(0)
+      self.tableWidget.setItem(y, 0, QtGui.QTableWidgetItem(ean))
+      self.tableWidget.setItem(y, 1, QtGui.QTableWidgetItem(get_product_name(ean)))
+      self.tableWidget.setItem(y, 2, QtGui.QTableWidgetItem(str(enstocked - destocked)))
+      self.tableWidget.setItem(y, 3, QtGui.QTableWidgetItem(str(get_product_price(ean)[0])))
+      self.tableWidget.setItem(y, 4, QtGui.QTableWidgetItem(get_last_product_stock_date(ean)))
+
+      y += 1
+
+  def load_debts(self):
+    q = QtSql.QSqlQuery()
+    q.prepare("select distinct(buys.person_id), sum(stock.price), person.name, count(distinct(buys.id)) from buys"
+        " join stock on buys.stock_id = stock.id join person "
+        "on buys.person_id = person.id where buys.payed = 0 "
+        "group by person.id")
+#    select distinct(buys.person_id), sum(stock.price), person.name from buys join stock on buys.stock_id = stock.id join person on buys.person_id = person.id where buys.payed = 0;
+
+    q.exec_()
+    x, y = 0, 0
+    while q.next():
+      price = q.value(1).toInt()[0]
+      name  = q.value(2).toString()
+      count = q.value(3).toInt()[0]
+      self.twDebts.insertRow(0)
+      self.twDebts.setItem(y, 0, QtGui.QTableWidgetItem(name))
+      self.twDebts.setItem(y, 1, QtGui.QTableWidgetItem(str(price)))
+      self.twDebts.setItem(y, 2, QtGui.QTableWidgetItem(str(count)))
+      print price, name, count
+
+
+class SelectUserUI(QtGui.QDialog):
+  def __init__(self, *args):
+    super(SelectUserUI, self).__init__(*args)
+
+    uic.loadUi('select_user.ui', self)
+
+    self.load_users()
+
+    self.username = None
+    self.parentwindow = args[0]
+
+  def load_users(self):
+    q = QtSql.QSqlQuery()
+    q.prepare('select name from person')
+    r = q.exec_()
+
+    model = QtGui.QStandardItemModel(self.listView)
+    while q.next():
+      item = QtGui.QStandardItem(q.value(0).toString())
+      model.appendRow(item)
+
+    self.listView.setModel(model)
+    model.sort(0)
+
+  @QtCore.pyqtSlot(QtCore.QModelIndex)
+  def on_listView_clicked(self, idx):
+    print 'hahahahahah', idx.data().toString()
+    self.username = idx.data().toString()
+
+    ean = self.parentwindow.lblEAN.text()
+    buy_stocked_item(ean, self.parentwindow.spnCount.value(), self.username)
+
+    self.parentwindow.newProd(ean)
+    QtCore.QTimer.singleShot(500, self.parentwindow.clear_product)
+
+    self.accept()
+
+  @QtCore.pyqtSlot()
+  def on_buttonBox_rejected(self):
+    self.parentwindow.btnBuy.setEnabled(True)
+    self.parentwindow.btnDebt.setEnabled(True)
+
+  @QtCore.pyqtSlot()
+  def on_buttonBox_accepted(self):
+    print 'buu'
+
+
+class AddStockUI(QtGui.QDialog):
+  def __init__(self, *args):
+    super(AddStockUI, self).__init__(*args)
+
+    uic.loadUi('addstock.ui', self)
+
+  @QtCore.pyqtSlot()
+  def on_btnLookup_clicked(self):
+    r = upcrpc.lookup(self.txtEAN.text())
+    if r is None:
+      import kaufkauf
+      r = kaufkauf.lookup(self.txtEAN.text())
+
+    self.txtProd.setText(r)
+
+
+  @QtCore.pyqtSlot()
+  def on_buttonBox_accepted(self):
+    ean = self.txtEAN.text()
+    prod = self.txtProd.text()
+    r, q = product_in_db(ean)
+    if not r:
+      r, q = add_new_product(ean, prod)
+      if not r:
+        QtGui.QMessageBox.critical(None, 'Error',
+            "Cannot add new product:{}".format(q.lastError().text()),
+            QtGui.QMessageBox.Cancel)
+        return
+
+    r, q = add_new_stock(ean, self.spnPrice.value(), self.spnCount.value())
+    if not r:
+      QtGui.QMessageBox.critical(None, 'Error',
+            "Cannot add new stock:{}".format(q.lastError().text()),
+            QtGui.QMessageBox.Cancel)
+      return
+
+    print 'lala'
+
 class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
   def __init__(self, *args):
     super(UI, self).__init__(*args)
@@ -32,26 +325,138 @@ class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
     uic.loadUi('front.ui', self)
     self.clear_product()
 
+    self.clear_timer = QtCore.QTimer()
+    self.clear_timer.setSingleShot(True)
+    QtCore.QObject.connect(self.clear_timer, QtCore.SIGNAL("timeout()"), self.clear_product)
+
   def clear_product(self):
+    try:
+      self.clear_timer.stop()
+    except Exception as e:
+      print e
+
+
     self.lblProd.setText('---')
     self.lblEAN.setText('')
     self.lblStockedCount.setText('-')
-    self.lblPrice.setText('- CZK')
+    self.lblPrice.setText('-')
     self.lblEAN.setText('')
     self.spnCount.setValue(0)
+    self.btnBuy.setEnabled(False)
+    self.btnDebt.setEnabled(False)
+    self.unit_price = 0
+    self.spnCount.setMaximum(0)
+    print 'cleared'
 
   def newProd(self, ean):
     self.lblEAN.setText(ean)
     self.spnCount.setValue(1)
 
+    q = QtSql.QSqlQuery()
+    q.prepare('select * from products where ean = :ean limit 1')
+    q.bindValue(':ean', ean)
+    r = q.exec_()
+    if r:
+      print r, q.next(), q.value(0).toString(), q.value(1).toString()
+
+      self.lblProd.setText(q.value(1).toString())
+
+    q.prepare('select ean, count, price from stock where ean = :ean order by stockdate desc')
+    q.bindValue(':ean', ean)
+    r = q.exec_()
+    #print q.next(), q.value(0).toString()
+    if not r:
+      print 'never stocked'
+      print q.lastError().text()
+      self.lblStockedCount.setText('0')
+    else:
+      q.next()
+      self.lblPrice.setText(q.value(2).toString())
+      self.unit_price = q.value(2).toInt()[0]
+      q.prepare('select sum(count) from stock where ean = :ean')
+      q.bindValue(':ean', ean)
+      r = q.exec_()
+      q.next()
+      enstocked = q.value(0).toInt()[0]
+      print 'stocked', enstocked
+
+
+      q.prepare('select count(distinct(buys.id)) from buys join stock on stock.ean = :ean')
+      q.bindValue(':ean', ean)
+      r = q.exec_()
+      q.next()
+      destocked = q.value(0).toInt()[0]
+      print 'destocked', destocked, q.value(1)
+
+      count = enstocked - destocked
+      self.lblStockedCount.setText(str(count))
+
+      self.spnCount.setMaximum(count)
+
+      if count < 1:
+        self.btnBuy.setEnabled(False)
+        self.btnDebt.setEnabled(False)
+      else:
+        self.btnBuy.setEnabled(True)
+        self.btnDebt.setEnabled(True)
+
+    self.clear_timer.start(60000)
+
+
+  @QtCore.pyqtSlot()
+  def on_btnDebt_clicked(self):
+    self.btnBuy.setEnabled(False)
+    self.btnDebt.setEnabled(False)
+    self.selectuserui = SelectUserUI(self)
+    self.selectuserui.setVisible(True)
+    self.selectuserui.show()
+    self.selectuserui.setModal(True)
+    print 'got', self.selectuserui.username
+
+  @QtCore.pyqtSlot(int)
+  def on_spnCount_valueChanged(self, cnt):
+    self.lblPrice.setText(str(self.unit_price * cnt))
+
+
+  @QtCore.pyqtSlot()
+  def on_btnStocked_clicked(self):
+    self.overview = StockOverviewUI()
+    self.overview.show()
+    self.overview.setVisible(True)
+
+  @QtCore.pyqtSlot()
+  def on_btnCancel_clicked(self):
+    self.clear_product()
+
   @QtCore.pyqtSlot()
   def on_btnBuy_clicked(self):
+    self.btnBuy.setEnabled(False)
+    self.btnDebt.setEnabled(False)
     cnt = self.spnCount.value()
+    ean = self.lblEAN.text()
+    print ean, cnt
+
+    buy_stocked_item(ean, cnt)
+    self.newProd(ean)
+    QtCore.QTimer.singleShot(500, self.clear_product)
+
+  @QtCore.pyqtSlot()
+  def on_btnAddStock_clicked(self):
     prod = self.lblEAN.text()
-    print prod, cnt
+    self.adds = AddStockUI()
+    self.adds.setVisible(True)
+    self.adds.show()
+
+    self.newProd(prod)
+    QtCore.QTimer.singleShot(500, self.clear_product)
+    print 'add'
+
 
 if __name__ == "__main__":
   app = QtGui.QApplication(sys.argv)
+
+  createConnection()
+
   w = UI()
   w.show()
   w.setVisible(True)
