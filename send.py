@@ -23,6 +23,9 @@ if __name__ == '__main__':
 
   if len(sys.argv) == 1:
     server.newProductCode()
+  elif sys.argv[1] == '-':
+    while (not sys.stdin.closed):
+      server.newProductCode(sys.stdin.readline().strip())
   else:
     server.newProductCode(sys.argv[1])
 
