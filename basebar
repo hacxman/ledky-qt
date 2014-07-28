@@ -129,6 +129,7 @@ def get_product_price(ean):
   return q.value(0).toInt()
 
 def buy_stocked_item(ean, count, debter=None):
+  print 'buying', ean, count, debter
   if debter is not None:
     debterid = get_person_id(debter)[0]
   else:
@@ -224,6 +225,7 @@ class StockOverviewUI(QtGui.QDialog):
       price = q.value(1).toInt()[0]
       name  = q.value(2).toString()
       count = q.value(3).toInt()[0]
+      print name, price, count
       self.twDebts.insertRow(0)
       self.twDebts.setItem(y, 0, QtGui.QTableWidgetItem(name))
       self.twDebts.setItem(y, 1, QtGui.QTableWidgetItem(str(price)))
@@ -352,8 +354,8 @@ class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
     q.prepare('select * from products where ean = :ean limit 1')
     q.bindValue(':ean', ean)
     r = q.exec_()
-    if r:
-      print r, q.next(), q.value(0).toString(), q.value(1).toString()
+    if q.next():
+#      print r, q.next(), q.value(0).toString().encode('utf8'), q.value(1).toString().encode('utf8')
 
       self.lblProd.setText(q.value(1).toString())
 
@@ -388,6 +390,7 @@ class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
       self.lblStockedCount.setText(str(count))
 
       self.spnCount.setMaximum(count)
+      self.spnCount.setValue(1)
 
       if count < 1:
         self.btnBuy.setEnabled(False)
@@ -445,8 +448,8 @@ class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
     self.adds.txtEAN.setText(prod)
     self.adds.txtProd.setText(get_product_name(prod))
 
-    self.newProd(prod)
-    QtCore.QTimer.singleShot(500, self.clear_product)
+    #self.newProd(prod)
+    #QtCore.QTimer.singleShot(500, self.clear_product)
     print 'add'
 
 
