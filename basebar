@@ -301,7 +301,7 @@ class AddStockUI(QtGui.QDialog):
     ean = self.txtEAN.text()
     prod = self.txtProd.text()
     r, q = product_in_db(ean)
-    if not r:
+    if not q.next():
       r, q = add_new_product(ean, prod)
       if not r:
         QtGui.QMessageBox.critical(None, 'Error',
@@ -315,8 +315,6 @@ class AddStockUI(QtGui.QDialog):
             "Cannot add new stock:{}".format(q.lastError().text()),
             QtGui.QMessageBox.Cancel)
       return
-
-    print 'lala'
 
 class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
   def __init__(self, *args):
@@ -446,6 +444,8 @@ class UI(QtGui.QMainWindow): #, front.Ui_MainWindow):
     self.adds = AddStockUI()
     self.adds.setVisible(True)
     self.adds.show()
+    self.adds.txtEAN.setText(prod)
+    self.adds.txtProd.setText(get_product_name(prod))
 
     self.newProd(prod)
     QtCore.QTimer.singleShot(500, self.clear_product)
