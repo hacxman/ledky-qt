@@ -210,8 +210,6 @@ class StockOverviewUI(QtGui.QDialog):
       self.tableWidget.setItem(y, 3, QtGui.QTableWidgetItem(str(get_product_price(ean)[0])))
       self.tableWidget.setItem(y, 4, QtGui.QTableWidgetItem(get_last_product_stock_date(ean)))
 
-      y += 1
-
   def load_debts(self):
     q = QtSql.QSqlQuery()
     q.prepare("select distinct(buys.person_id), sum(stock.price), person.name, count(distinct(buys.id)) from buys"
