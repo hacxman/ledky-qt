@@ -1,31 +1,9 @@
-Basebar
+Ledky-qt
 #######
 
-To test, try this:
+To run you need pyqt4 and python. Then,
+./ledky IPADDRESS PORT
 
-./basebar & sleep 1; python send.py EAN-13:5901234123457
+will connect to ledserver [1] at specified port over UDP socket
 
-It will automatically create new database if one is missing, prefilled with some test data.
-send.py will send "recognized" EAN code to basebar.
-
-To try "normal" run, start it as
-
-./basebar
-
-and, then run barcode scanner such as:
-
-zbarcam | python send.py -
-
-Deploy
-######
-
-It is intended that it would run fullscreen, under some very minimal window manager such as xmonad.
-Basebar is a DBus service too, where it listens for incoming barcodes. For convenient hand over of these
-barcodes, there is a send.py utility - it accepts codes from arguments and stdin. So it is not
-restricted to one barcode scanner.
-
-Some example could be:
-
-echo "xmonad" >> ~/.xinitrc
-echo "basebar" >> ~/.xinitrc
-echo "zbarcam | python /BASEBARPATH/send.py -" >> ~/.xinitrc
+[1] - https://github.com/hacxman/ledserver
