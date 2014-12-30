@@ -13,7 +13,15 @@ class UI(QtGui.QMainWindow):
     self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     self.server.connect((sys.argv[1], int(sys.argv[2])))
 
+    self.timer = QtCore.QTimer()
+    QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.on_timer_timeout)
+
     uic.loadUi('mainwindow.ui', self)
+
+#  @QtCore.pyqtSlot()
+  def on_timer_timeout(self):
+    self.horizontalSlider.setValue((self.horizontalSlider.value()+self.spnInc.value()) % 500)
+    print 'kokt'
 
   def write_color_array(self, r, g, b):
     #sys.stdout.write('a')
@@ -63,6 +71,18 @@ class UI(QtGui.QMainWindow):
     self.write_color_array(int(self.label_2.text()),
       int(self.label_3.text()),
       int(self.label_4.text()))
+
+  @QtCore.pyqtSlot(float)
+  def on_spnSpeed_valueChanged(self, num):
+    self.timer.setInterval(num)
+
+
+  @QtCore.pyqtSlot(bool)
+  def on_chkCycle_toggled(self, val):
+    if val:
+      self.timer.start(self.spnSpeed.value())
+    else:
+      self.timer.stop()
 
 if __name__ == "__main__":
   app = QtGui.QApplication(sys.argv)
