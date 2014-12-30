@@ -24,6 +24,13 @@ class UI(QtGui.QMainWindow):
     #sys.stdout.write(data)
     #sys.stdout.flush()
 
+  @QtCore.pyqtSlot()
+  def on_pushButton_clicked(self):
+    self.server.sendall('x')
+    d = self.server.recv(4)
+    cnt = struct.unpack('=i', d)
+    self.label_5.setText('Leds: ' + str(cnt))
+
   @QtCore.pyqtSlot(int)
   def on_horizontalSlider_valueChanged(self, num):
 #    sys.stdout.write('r')
@@ -61,6 +68,13 @@ if __name__ == "__main__":
   app = QtGui.QApplication(sys.argv)
 
   w = UI()
+
+  if '-off' in sys.argv:
+    w.write_color_array(0,0,0)
+
+  if '-q' in sys.argv:
+    exit(0)
+
   w.show()
   w.setVisible(True)
 
