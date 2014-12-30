@@ -18,6 +18,9 @@ class UI(QtGui.QMainWindow):
     self.hval = 0
 
     uic.loadUi('mainwindow.ui', self)
+    self.cfg = 0
+    self.pushButton.click()
+    self.horizontalSlider.setMaximum(256*2)
 
 #  @QtCore.pyqtSlot()
   def on_timer_timeout(self):
@@ -32,7 +35,7 @@ class UI(QtGui.QMainWindow):
     #sys.stdout.write('a')
     #sys.stdout.flush()
     self.server.sendall('a')
-    data = struct.pack('='+'BBB'*240, *[b,g,r]*240)
+    data = struct.pack('='+'BBB'*self.cfg, *[b,g,r]*self.cfg)
     self.server.sendall(data)
     #sys.stdout.write(data)
     #sys.stdout.flush()
@@ -42,6 +45,7 @@ class UI(QtGui.QMainWindow):
     self.server.sendall('x')
     d = self.server.recv(4)
     cnt = struct.unpack('=i', d)
+    self.cfg = cnt[0]
     self.label_5.setText('Leds: ' + str(cnt))
 
   @QtCore.pyqtSlot(int)
