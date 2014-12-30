@@ -10,6 +10,12 @@
     <height>314</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
@@ -117,12 +123,18 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spnInc">
+           <widget class="QDoubleSpinBox" name="spnInc">
+            <property name="decimals">
+             <number>4</number>
+            </property>
             <property name="minimum">
-             <number>-500</number>
+             <double>-10000000.000000000000000</double>
             </property>
             <property name="maximum">
-             <number>500</number>
+             <double>1000000099.990000009536743</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
             </property>
            </widget>
           </item>

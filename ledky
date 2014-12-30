@@ -15,13 +15,18 @@ class UI(QtGui.QMainWindow):
 
     self.timer = QtCore.QTimer()
     QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.on_timer_timeout)
+    self.hval = 0
 
     uic.loadUi('mainwindow.ui', self)
 
 #  @QtCore.pyqtSlot()
   def on_timer_timeout(self):
-    self.horizontalSlider.setValue((self.horizontalSlider.value()+self.spnInc.value()) % 500)
-    print 'kokt'
+    self.hval = (self.hval + self.spnInc.value()) % self.horizontalSlider.maximum()
+    self.horizontalSlider.setValue(self.hval)
+    t = str(self.hval).split('.')
+    t.append('0')
+    self.label.setText(t[0].rjust(3, '0') + '.' + t[1].ljust(4, '0'))
+#    print 'kokt'
 
   def write_color_array(self, r, g, b):
     #sys.stdout.write('a')
@@ -49,7 +54,11 @@ class UI(QtGui.QMainWindow):
 #    sys.stdout.write(data)
     self.server.sendall(data)
 #    sys.stdout.flush()
-    self.label.setText(str(num))
+    self.hval = num
+    t = str(self.hval).split('.')
+    t.append('0')
+    self.label.setText(t[0].rjust(3, '0') + '.' + t[1].ljust(4, '0'))
+
 
   @QtCore.pyqtSlot(int)
   def on_horizontalSlider_2_valueChanged(self, num):
