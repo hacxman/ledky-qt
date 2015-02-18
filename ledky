@@ -15,12 +15,21 @@ class UI(QtGui.QMainWindow):
 
     self.timer = QtCore.QTimer()
     QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.on_timer_timeout)
+
+    self.pofftimer = QtCore.QTimer()
+    QtCore.QObject.connect(self.pofftimer, QtCore.SIGNAL("timeout()"), self.on_pofftimer_timeout)
+
     self.hval = 0
 
     uic.loadUi('mainwindow.ui', self)
     self.cfg = 0
     self.pushButton.click()
     self.horizontalSlider.setMaximum(256*2)
+    self.timePoweroff.setTime(QtCore.QTime.currentTime())
+
+  def on_pofftimer_timeout(self):
+    self.write_color_array(0,0,0)
+    self.chkPoweroff.setCheckState(0)
 
 #  @QtCore.pyqtSlot()
   def on_timer_timeout(self):
@@ -44,6 +53,10 @@ class UI(QtGui.QMainWindow):
     self.server.sendall(data)
     #sys.stdout.write(data)
     #sys.stdout.flush()
+
+  @QtCore.pyqtSlot()
+  def on_btnCurrentTime_clicked(self):
+    self.timePoweroff.setTime(QtCore.QTime.currentTime())
 
   @QtCore.pyqtSlot()
   def on_pushButton_clicked(self):
@@ -99,6 +112,21 @@ class UI(QtGui.QMainWindow):
   def on_spnSpeed_valueChanged(self, num):
     self.timer.setInterval(num)
 
+  @QtCore.pyqtSlot(QtCore.QTime)
+  def on_timePoweroff_timeChanged(self, time):
+      t = QtCore.QTime.currentTime().secsTo(self.timePoweroff.time())
+      if self.pofftimer.isActive():
+        self.pofftimer.stop()
+        self.pofftimer.start(t * 1000)
+
+  @QtCore.pyqtSlot(bool)
+  def on_chkPoweroff_toggled(self, val):
+    if val:
+      t = QtCore.QTime.currentTime().secsTo(self.timePoweroff.time())
+      print t
+      self.pofftimer.start(t * 1000)
+    else:
+      self.pofftimer.stop()
 
   @QtCore.pyqtSlot(bool)
   def on_chkCycle_toggled(self, val):
