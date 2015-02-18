@@ -31,6 +31,11 @@ class UI(QtGui.QMainWindow):
     self.label.setText(t[0].rjust(3, '0') + '.' + t[1].ljust(4, '0'))
 #    print 'kokt'
 
+  def write_brightness(self, bri):
+    self.server.sendall('b')
+    data = struct.pack('=i', bri)
+    self.server.sendall(data)
+
   def write_color_array(self, r, g, b):
     #sys.stdout.write('a')
     #sys.stdout.flush()
@@ -84,6 +89,11 @@ class UI(QtGui.QMainWindow):
     self.write_color_array(int(self.label_2.text()),
       int(self.label_3.text()),
       int(self.label_4.text()))
+
+  @QtCore.pyqtSlot(int)
+  def on_sldBri_valueChanged(self, num):
+    self.lblBri.setText(str(num))
+    self.write_brightness(int(self.lblBri.text()))
 
   @QtCore.pyqtSlot(float)
   def on_spnSpeed_valueChanged(self, num):
