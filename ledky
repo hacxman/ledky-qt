@@ -28,6 +28,7 @@ class UI(QtGui.QMainWindow):
     self.timePoweroff.setTime(QtCore.QTime.currentTime())
 
   def on_pofftimer_timeout(self):
+    self.chkCycle.setCheckState(0)
     self.write_color_array(0,0,0)
     self.chkPoweroff.setCheckState(0)
 
